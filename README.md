@@ -12,7 +12,7 @@ I'm releasing this "as is", even though many parts are still a mess and need wor
 
 USING
 -----
-Just copy the "Unorthdox" folder to your Arduino "libraries" directory, and #include <Unorthodox.h> in the usual way.
+Just copy the "Unorthodox" folder to your Arduino "libraries" directory, and #include <Unorthodox.h> in the usual way.
 BUT: Please include all the standard libraries you intend to use (like SPI, EEPROM and Wire) _first_ because the Unorthodox lib will only declare dependant classes (such as EEPROMPage or SPIDevice) if the requirements are _already_ loaded.
 
 The library is currently "AVR only" simply because of the directory structure, and I don't have SAM hardware to test on, but most of the classes should port without issue. And yes, I know it takes a long time to compile - everything is in header files rather than .cpp, for various stupid reasons.
