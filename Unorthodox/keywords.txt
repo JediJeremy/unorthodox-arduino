@@ -1,0 +1,25 @@
+#######################################
+# Syntax Coloring Map For GSM
+####################################### 
+# Class
+#######################################
+
+Droid	KEYWORD3
+Device	KEYWORD3
+SPIDevice	KEYWORD3
+I2CDevice	KEYWORD3
+ReadPage	KEYWORD3
+WritePage	KEYWORD3
+
+#######################################
+# Methods and Functions 
+#######################################	
+
+start	KEYWORD2
+stop	KEYWORD2
+
+#######################################
+# Constants
+#######################################
+ 
+ERROR	LITERAL1
