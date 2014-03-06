@@ -1,12 +1,12 @@
 unorthodox-arduino
 ==================
 
-General purpose library with many useful things for the Arduino Leonardo: Graphical User Interface, Flash file system, Real-time Robots kernel, Hardware drivers, Virtual memory, Binary trees, Attribute tries, and even LZW compression.
+General purpose library with many useful things for the Arduino Leonardo: Flash file system, Raster/GUI, Real-time Robotics kernel, Hardware drivers, Virtual memory, Binary Trees, Tries, Associative maps, and Streaming Micro-parser.
 
 PREVIEW RELEASE V0.1
 --------------------
 
-I'm releasing this "as is", even though many parts are still a mess and need work, because there's enough useful stuff in here to be worth it. But there are no examples, very little documentation, and not a lot of explanations for the ass-backwards way I seem to do some things in the name of optimization. 
+I'm releasing this "as is", even though many parts are still a mess and need work, because there's enough useful stuff in here to be worth it. But there are few examples, very little documentation, and not a lot of explanations for the ass-backwards way I seem to do things in the name of optimization. 
 
 ~ Jeremy
 
