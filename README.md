@@ -10,6 +10,10 @@ I'm releasing this "as is", even though many parts are still a mess and need wor
 
 ~ Jeremy
 
+Update 22/3/2014: I have started documenting various things at my blog: 
+http://unorthodox-engineers.blogspot.com.au/
+
+
 USING
 -----
 Just copy the "Unorthodox" folder to your Arduino "libraries" directory, and #include <Unorthodox.h> in the usual way.
