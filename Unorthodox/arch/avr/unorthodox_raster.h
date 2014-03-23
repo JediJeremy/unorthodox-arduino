@@ -331,8 +331,6 @@ private:
 
 #endif
 
-#ifdef _SPI_H_INCLUDED
-
 class ST7735 {
 public:
 	static const word NOP      = 0x00;
@@ -401,6 +399,9 @@ public:
 
 };
 
+
+#ifdef _SPI_H_INCLUDED
+
 PROGMEM prog_uchar ST7735_SPI_init0[] = {
 	1,ST7735::SWRESET,
 	0
@@ -464,7 +465,7 @@ PROGMEM prog_uchar ST7735_SPI_init3[] = {
 	0
 };
 
-class ST7735_SPI : public Raster16, SPIDevice, ST7735 {
+class ST7735_SPI : public Raster16, public SPIDevice, public ST7735 {
 public:
 	// chip mode flags
 	static const byte ChipSelect  = 0x01;
@@ -472,59 +473,7 @@ public:
 	// base MADCTL value
 	byte madctl_base;
 public:
-	ST7735_SPI(){
-		width = 128;
-		height = 240;
-		// madctl_base = 0xC8; // 
-		madctl_base = 0x00; // 
 
-	}
-
-	void fragment(word x, word y, byte dir, Page * pixels, word index, word count) {
-		// determine entry mode and cursor position
-		byte mc;
-		byte ra, ca, re, ce;
-		switch(dir) {
-			case Raster::RIGHT: mc = 0;                   ca = x; ra = y; ce = 127; re = 159; break;
-			case Raster::DOWN:  mc = MadCtlMV;            ca = y; ra = x; ce = 159; re = 127; break;
-			case Raster::LEFT:  mc = MadCtlMX;            ca = 127-x; ra = y; ce = 127; re = 159; break;
-			case Raster::UP:    mc = MadCtlMV | MadCtlMY; ca = 159-y; ra = x; ce = 159; re = 127; break;
-		}
-		// write fragment prefix as quickly as possible
-		chip_mode(ChipSelect | ChipCommand);
-		SPDR = MADCTL; while(!(SPSR & _BV(SPIF))); 
-		chip_mode(ChipSelect);
-		SPDR = madctl_base ^ mc; while(!(SPSR & _BV(SPIF))); 
-		chip_mode(ChipSelect | ChipCommand);
-		SPDR = CASET; while(!(SPSR & _BV(SPIF))); 
-		chip_mode(ChipSelect);
-		SPDR = 0; while(!(SPSR & _BV(SPIF))); 
-		SPDR = ca; while(!(SPSR & _BV(SPIF))); 
-		SPDR = 0; while(!(SPSR & _BV(SPIF))); 
-		SPDR = ce; while(!(SPSR & _BV(SPIF))); 
-		chip_mode(ChipSelect | ChipCommand);
-		SPDR = RASET; while(!(SPSR & _BV(SPIF))); 
-		chip_mode(ChipSelect);
-		SPDR = 0; while(!(SPSR & _BV(SPIF))); 
-		SPDR = ra; while(!(SPSR & _BV(SPIF))); 
-		SPDR = 0; while(!(SPSR & _BV(SPIF))); 
-		SPDR = re; while(!(SPSR & _BV(SPIF))); 
-		chip_mode(ChipSelect | ChipCommand);
-		SPDR = RAMWR; while(!(SPSR & _BV(SPIF))); 		
-		// now write out the pixel data
-		chip_mode(ChipSelect);
-		word ic = count * 2;
-		byte b;
-		for(word i=0; i<ic; i++) {
-			// transfer the next byte
-			// SPI.transfer(page->read_byte(index++)); 
-			pixels->read(index++,&b,1);
-			SPDR = b; // start next transfer
-			while(!(SPSR & _BV(SPIF))); // wait for previous transfer to finish
-		}		
-		chip_mode(0);
-	}
-	
 	word color(byte r, byte g, byte b) {
 		word w = 0;
 		w |= (r & 0xF8) << 8;
@@ -592,6 +541,120 @@ public:
 // private:
 	virtual void chip_mode(byte mode) = 0;
 	
+};
+
+/*
+ * ST7735_SPI device class optimized for 128x240 'portrait' view, oriented 'upwards'
+ */
+class ST7735_SPI_PortUp : public ST7735_SPI {
+public:
+	ST7735_SPI_PortUp(){
+		width = 128;
+		height = 240;
+		// madctl_base = 0xC8; // 
+		madctl_base = 0x00; // 
+	}
+
+	void fragment(word x, word y, byte dir, Page * pixels, word index, word count) {
+		// determine entry mode and cursor position
+		byte mc;
+		byte ra, ca, re, ce;
+		switch(dir) {
+			case Raster::RIGHT: mc = 0;                   ca = x; ra = y; ce = 127; re = 159; break;
+			case Raster::DOWN:  mc = MadCtlMV;            ca = y; ra = x; ce = 159; re = 127; break;
+			case Raster::LEFT:  mc = MadCtlMX;            ca = 127-x; ra = y; ce = 127; re = 159; break;
+			case Raster::UP:    mc = MadCtlMV | MadCtlMY; ca = 159-y; ra = x; ce = 159; re = 127; break;
+		}
+		// write fragment prefix as quickly as possible
+		chip_mode(ChipSelect | ChipCommand);
+		SPDR = MADCTL; while(!(SPSR & _BV(SPIF))); 
+		chip_mode(ChipSelect);
+		SPDR = madctl_base ^ mc; while(!(SPSR & _BV(SPIF))); 
+		chip_mode(ChipSelect | ChipCommand);
+		SPDR = CASET; while(!(SPSR & _BV(SPIF))); 
+		chip_mode(ChipSelect);
+		SPDR = 0; while(!(SPSR & _BV(SPIF))); 
+		SPDR = ca; while(!(SPSR & _BV(SPIF))); 
+		SPDR = 0; while(!(SPSR & _BV(SPIF))); 
+		SPDR = ce; while(!(SPSR & _BV(SPIF))); 
+		chip_mode(ChipSelect | ChipCommand);
+		SPDR = RASET; while(!(SPSR & _BV(SPIF))); 
+		chip_mode(ChipSelect);
+		SPDR = 0; while(!(SPSR & _BV(SPIF))); 
+		SPDR = ra; while(!(SPSR & _BV(SPIF))); 
+		SPDR = 0; while(!(SPSR & _BV(SPIF))); 
+		SPDR = re; while(!(SPSR & _BV(SPIF))); 
+		chip_mode(ChipSelect | ChipCommand);
+		SPDR = RAMWR; while(!(SPSR & _BV(SPIF))); 		
+		// now write out the pixel data
+		chip_mode(ChipSelect);
+		word ic = count * 2;
+		byte b;
+		for(word i=0; i<ic; i++) {
+			// transfer the next byte
+			pixels->read(index++,&b,1);
+			SPDR = b; // start next transfer
+			while(!(SPSR & _BV(SPIF))); // wait for previous transfer to finish
+		}		
+		chip_mode(0);
+	}
+};
+
+/*
+ * ST7735_SPI device class optimized for 128x240 'portrait' view, oriented 'downwards'
+ */
+class ST7735_SPI_PortDown : public ST7735_SPI {
+public:
+	ST7735_SPI_PortDown(){
+		width = 128;
+		height = 240;
+		// madctl_base = 0xC8; // 
+		madctl_base = 0x00; // 
+	}
+
+	void fragment(word x, word y, byte dir, Page * pixels, word index, word count) {
+		// determine entry mode and cursor position
+		byte mc;
+		byte ra, ca, re, ce;
+		switch(dir) {
+			case Raster::RIGHT: mc = MadCtlMX | MadCtlMY;            ca = x; ra = y; ce = 127; re = 159; break;
+			case Raster::DOWN:  mc = MadCtlMV | MadCtlMX | MadCtlMY; ca = y; ra = x; ce = 159; re = 127; break;
+			case Raster::LEFT:  mc = MadCtlMY;                       ca = 127-x; ra = y; ce = 127; re = 159; break;
+			case Raster::UP:    mc = MadCtlMX | MadCtlMV;            ca = 159-y; ra = x; ce = 159; re = 127; break;
+		}
+		// write fragment prefix as quickly as possible
+		chip_mode(ChipSelect | ChipCommand);
+		SPDR = MADCTL; while(!(SPSR & _BV(SPIF))); 
+		chip_mode(ChipSelect);
+		SPDR = madctl_base ^ mc; while(!(SPSR & _BV(SPIF))); 
+		chip_mode(ChipSelect | ChipCommand);
+		SPDR = CASET; while(!(SPSR & _BV(SPIF))); 
+		chip_mode(ChipSelect);
+		SPDR = 0; while(!(SPSR & _BV(SPIF))); 
+		SPDR = ca; while(!(SPSR & _BV(SPIF))); 
+		SPDR = 0; while(!(SPSR & _BV(SPIF))); 
+		SPDR = ce; while(!(SPSR & _BV(SPIF))); 
+		chip_mode(ChipSelect | ChipCommand);
+		SPDR = RASET; while(!(SPSR & _BV(SPIF))); 
+		chip_mode(ChipSelect);
+		SPDR = 0; while(!(SPSR & _BV(SPIF))); 
+		SPDR = ra; while(!(SPSR & _BV(SPIF))); 
+		SPDR = 0; while(!(SPSR & _BV(SPIF))); 
+		SPDR = re; while(!(SPSR & _BV(SPIF))); 
+		chip_mode(ChipSelect | ChipCommand);
+		SPDR = RAMWR; while(!(SPSR & _BV(SPIF))); 		
+		// now write out the pixel data
+		chip_mode(ChipSelect);
+		word ic = count * 2;
+		byte b;
+		for(word i=0; i<ic; i++) {
+			// transfer the next byte
+			pixels->read(index++,&b,1);
+			SPDR = b; // start next transfer
+			while(!(SPSR & _BV(SPIF))); // wait for previous transfer to finish
+		}		
+		chip_mode(0);
+	}
 };
 
 #endif

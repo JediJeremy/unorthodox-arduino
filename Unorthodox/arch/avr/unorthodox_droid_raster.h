@@ -388,8 +388,8 @@ PROGMEM prog_uint8_t SourcePager_math_line[] = {
 	RasterPager::Style | 0, RasterPager::Span | 3, // operand value
 	RasterPager::Style | RasterPager::Vector | 6, RasterPager::Span | 1 | RasterPager::Last, // bracket
 	// fragment instructions
-	RasterPager::Lit | 2, 'x',' ',
-	RasterPager::Lit | 2, '+',' ',
+	RasterPager::Lit | 2, ' ','x',
+	RasterPager::Lit | 2, ' ','+',
 	RasterPager::Lit | 1, '(',
 	RasterPager::Dec | 0, 
 	RasterPager::Lit | 1, ')',
@@ -414,8 +414,8 @@ PROGMEM prog_uint8_t SourcePager_skip_line[] = {
 	RasterPager::Span | 2,                         // operand value
 	RasterPager::Span | 1 | RasterPager::Last,     // arrow
 	// fragment instructions
-	RasterPager::Lit | 2, 'x',' ',
-	RasterPager::Lit | 2, '+',' ',
+	RasterPager::Lit | 2, ' ','x',
+	RasterPager::Lit | 2, ' ','+',
 	RasterPager::Lit | 1, '(',
 	RasterPager::Dec | 0, 
 	RasterPager::Lit | 1, ')',
@@ -443,8 +443,9 @@ public:
 	SourcePager(BaseDroid * droid) {
 		this->droid = droid;
 		spin_mask = 0;
-		code_index = 0;
-		modified = false;
+		// code_index = 0;
+		// modified = false;
+		load(0);
 	}
 
 	word click(RasterSpan * s) ;
@@ -454,7 +455,8 @@ public:
 		int line = s->row - 2;
 		// word action;
 		if(spin_mask==0) {
-			return ((s->col + dx) >= 0) ? (MoveCursor | MovePage | RedrawCursor) : (NoAction);
+			// return ((s->col + dx) >= 0) ? (MoveCursor | MovePage | RedrawCursor) : (NoAction);
+			return (MoveCursor | MovePage | RedrawCursor);
 		} else if(dy) {
 			word w = source[line];
 			// increment mask bits
@@ -475,16 +477,15 @@ public:
 	}
 
 	word page_increment(RasterSpan * s, int dx, int dy) {
-		if(dx>0) {
-			save();
-			return RedrawScreen | ViewSignal;
+		save();
+		if(dx) {
+			return (dx>0) ? (RedrawScreen | ViewSignal) : (RedrawScreen | ViewCodes);
 		}
 		if(dy) {
-			save();
 			load(code_index+dy);
 			return RedrawScreen;
 		}
-		return NoAction;
+		// return NoAction;
 	}
 	
 	void draw_span(RasterSpan * s) {
@@ -612,40 +613,40 @@ PROGMEM prog_uint8_t CodesPager_title_line[] = {
 
 PROGMEM prog_uint8_t CodesPager_immediate_line[] = {
 	// fragment metadata 
-	RasterPager::Span | 2,   					                  // left margin
-	RasterPager::Style | 3, RasterPager::Span | 1,                  // bracket
+	RasterPager::Style | 3, RasterPager::Span | 2,                  // left bracket
 	RasterPager::Style | 0, RasterPager::Span | 3,                  // code number
 	RasterPager::Style | 6, RasterPager::Span | 7,                  // immediate mode
-	RasterPager::Style | 3, RasterPager::Span | 2,                  // brackets
+	RasterPager::Style | 3, RasterPager::Span | 3,                  // brackets
 	RasterPager::Style | 2, RasterPager::Span | 2,                  // plus marker
-	RasterPager::Style | 1, RasterPager::Span | 1 | RasterPager::Last, // delete marker
+	RasterPager::Style | 1, RasterPager::Span | 3,                  // delete marker
+	RasterPager::Style | RasterPager::Vector | 1, RasterPager::Span | 1 | RasterPager::Last, // code arrow
 	// fragment instructions
-	RasterPager::Lit | 1, ' ',
-	RasterPager::Lit | 1, '(',
+	RasterPager::Lit | 2, ' ','(',
 	RasterPager::Dec | 0, 
 	RasterPager::Lit | 4, ' ','<','<',' ',
-	RasterPager::Lit | 2, ')',' ',
+	RasterPager::Lit | 3, ' ',')',' ',
 	RasterPager::Lit | 2, '+',' ',
-	RasterPager::Lit | 1, 'x'
+	RasterPager::Lit | 2, 'x',' ',
+	RasterPager::Lit | 1, '>'
 };
 
 PROGMEM prog_uint8_t CodesPager_deferred_line[] = {
 	// fragment metadata 
-	RasterPager::Span | 2,   					                  // left margin
-	RasterPager::Style | 3, RasterPager::Span | 6,                  // bracket + margin
+	RasterPager::Style | 3, RasterPager::Span | 7,                  // left bracket
 	RasterPager::Style | 6, RasterPager::Span | 2,                  // deferred mode
 	RasterPager::Style | 0, RasterPager::Span | 3,                  // code number
-	RasterPager::Style | 3, RasterPager::Span | 2,                  // brackets
+	RasterPager::Style | 3, RasterPager::Span | 3,                  // brackets
 	RasterPager::Style | 2, RasterPager::Span | 2,                  // plus marker
-	RasterPager::Style | 1, RasterPager::Span | 1 | RasterPager::Last, // delete marker
+	RasterPager::Style | 1, RasterPager::Span | 3,                  // delete marker
+	RasterPager::Style | RasterPager::Vector | 1, RasterPager::Span | 1 | RasterPager::Last, // code arrow
 	// fragment instructions
-	RasterPager::Lit | 1, ' ',
-	RasterPager::Lit | 2, '(',' ',
+	RasterPager::Lit | 3, ' ','(',' ',
 	RasterPager::Lit | 2, '>','>',
 	RasterPager::Dec | 0, 
-	RasterPager::Lit | 2, ')',' ',
+	RasterPager::Lit | 3, ' ',')',' ',
 	RasterPager::Lit | 2, '+',' ',
-	RasterPager::Lit | 1, 'x'
+	RasterPager::Lit | 2, 'x',' ',
+	RasterPager::Lit | 1, '>'
 };
 
 
@@ -665,9 +666,10 @@ public:
 	CodesPager(BaseDroid * droid) {
 		this->droid = droid;
 		spin_mask = 0;
-		codes = 0;
-		signal = 0;
-		modified = false;
+		// codes = 0;
+		// signal = 0;
+		// modified = false;
+		load(0);
 	}
 	
 	void draw_span(RasterSpan * s) {
@@ -683,6 +685,7 @@ public:
 			if(line<codes) {
 				line_format = (code[line] & 0x80) ? CodesPager_deferred_line : CodesPager_immediate_line; // code style
 				line_vector[0] = code[line] & 0x3F; // line number
+				line_vector[1] = droid->fs.token_size(line_vector[0]|0x80) ? 2:3;
 			}
 		}
 		format_span(s, line_format, line_vector);
@@ -732,9 +735,9 @@ public:
 				return RedrawScreen | RedrawCursor;
 			} else if(line<codes) {
 				// existing line
-				if(col<4) {
+				if(col<3) {
 					// margin
-				} else if(col<15) {
+				} else if(col<14) {
 					// spin value
 					spin_mask = 1;
 				} else if(col==15) {
@@ -764,7 +767,8 @@ public:
 	word cursor_increment(RasterSpan * s, int dx, int dy) {
 		if(spin_mask==0) {
 			// don't go past the right edge
-			return ( (s->col + dx) > 20 )  ? (NoAction) : (MoveCursor | MovePage | RedrawCursor);
+			// return ( (s->col + dx) > 20 )  ? (NoAction) : (MoveCursor | MovePage | RedrawCursor);
+			return (MoveCursor | MovePage | RedrawCursor);
 		}
 		int line = s->row - 2;
 		if(dy) {
@@ -781,21 +785,11 @@ public:
 		return RedrawLine | RedrawCursor;
 	}
 
-	word page_increment(RasterSpan * s, int dx, int dy) {
-		// default behavior
-		if(dy) {
-			save();
-			load(signal+dy);
-			return RedrawScreen;
-		}
-		if(dx<0) {
-			save();
-			return RedrawScreen | ViewSignal;
-		}
-		return NoAction;
-	}
+	word page_increment(RasterSpan * s, int dx, int dy);
 	
 };
+
+
 
 //
 static word RasterDroid_DefaultStyle[] = { 
@@ -1019,9 +1013,6 @@ public:
 				redraw_span.row = display_state;
 				redraw_span.fg = cursor_span.fg;
 				redraw_span.bg = cursor_span.bg;
-				//Serial.print("cls span\n");
-				// display->clear_span(&redraw_span);
-				//Serial.print("draw span\n");
 				display->draw_span(&redraw_span);
 				// clear the redraw span
 				line_count[display_state] = 0;
@@ -1129,6 +1120,30 @@ public:
 
 
 
+word CodesPager::page_increment(RasterSpan * s, int dx, int dy) {
+	// default behavior
+	if(dy) {
+		save();
+		load(signal+dy);
+		return RedrawScreen;
+	}
+	if(dx) {
+		save();
+		if(dx<0) {
+			// back to signal screen
+			return RedrawScreen | ViewSignal;			
+		} else {
+			// show code source
+			int line = s->row - 2;
+			if((line>=0) && (line<codes)) {
+				((RasterDroid *)droid)->Source.load(code[line]);
+			}
+			return RedrawScreen | ViewSource;
+		}
+	}
+	return NoAction;
+}
+
 word SignalPager::page_increment(RasterSpan * s, int dx, int dy) {
 	scroll_y = (scroll_y + dy) & 0x07;
 	int line = s->row + scroll_y*16 - header;
@@ -1138,7 +1153,7 @@ word SignalPager::page_increment(RasterSpan * s, int dx, int dy) {
 		}
 		return RedrawScreen | ViewSource;
 	} else if(dx>0) {
-		// we must have been on a code line
+		// show signal codes
 		((RasterDroid *)droid)->Codes.load(line);
 		return RedrawScreen | ViewCodes;
 	}
@@ -1160,13 +1175,13 @@ word SourcePager::click(RasterSpan * s) {
 			return RedrawScreen | RedrawCursor;
 		} else if(line < lines) {
 			if(col<4) {
-				if(col==0) {
+				if(col==1) {
 					// delete this row
 					for(int i=line; i<15; i++) source[i] = source[i+1];
 					lines--;
 					skipped = 0xFFFF;
 					return RedrawScreen | RedrawCursor;
-				} else if(col==2) {
+				} else if(col==3) {
 					// insert a row
 					for(int i=15; i>line; i--) source[i] = source[i-1];
 					lines++;

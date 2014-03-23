@@ -12,6 +12,50 @@
 #include <Wire.h>
 #include <SPI.h>
 
+#ifdef hal_gfx
+// include libraries
+#include <Adafruit_GFX.h>    // Core graphics library
+#include <Adafruit_ST7735.h> // Hardware-specific library
+// instance object
+Adafruit_ST7735 screen(10, A0, 4); // (cs, dc, rst);
+#endif
+
+#include <unorthodox.h>
+
+#ifdef hal_gfx
+#include <unorthodox_droid_gfx.h>
+#endif
+
+#ifdef hal_compass
+// compass device
+HMC5883L compass;
+// 'hard iron' calibration offsets
+#define HARDIRON_X  0
+#define HARDIRON_Y  0
+#define HARDIRON_Z  0
+
+#endif
+
+#ifdef hal_raster
+#include <unorthodox_droid_raster.h>
+// create a local variant of the ST7735 SPI Screen Device Driver
+// which connects to the needed pins
+class ST7735_Local : public ST7735_SPI_PortDown {
+public:
+  ST7735_Local() : ST7735_SPI_PortDown() {}
+  void chip_mode(byte mode) {
+    if(mode & ChipSelect) { PORTB &= ~(1<<6); } else { PORTB |= (1<<6);  } // D10 = PB6
+    if(mode & ChipCommand) { PORTF &= ~(1<<7); } else { PORTF |= (1<<7); } // A0  = PF7
+  }
+  void chip_reset() { }
+};
+
+// instance the screen driver
+ST7735_Local screen;
+
+#endif
+
+
 #ifdef hal_ir2
 // IR hardware setup
 const byte ir_rx_pin  = 0;
@@ -54,46 +98,7 @@ long ir_bits;
 byte ir_bit_count;
 #endif
 
-#ifdef hal_gfx
-// include libraries
-#include <Adafruit_GFX.h>    // Core graphics library
-#include <Adafruit_ST7735.h> // Hardware-specific library
-// instance object
-Adafruit_ST7735 screen(10, A0, 4); // (cs, dc, rst);
-#endif
-
-#include <unorthodox.h>
-
-#ifdef hal_gfx
-#include <unorthodox_droid_gfx.h>
-#endif
-
-#ifdef hal_compass
-HMC5883L compass;
-#endif
-
-#ifdef hal_raster
-#include <unorthodox_droid_raster.h>
-// create a local variant of the ST7735 SPI Screen Device Driver
-// which connects to the needed pins
-class ST7735_Local : public ST7735_SPI {
-public:
-  ST7735_Local() : ST7735_SPI() {}
-  void chip_mode(byte mode) {
-    if(mode & ChipSelect) { PORTB &= ~(1<<6); } else { PORTB |= (1<<6);  } // D10 = PB6
-    if(mode & ChipCommand) { PORTF &= ~(1<<7); } else { PORTF |= (1<<7); } // A0  = PF7
-  }
-  void chip_reset() { }
-};
-
-// instance the screen driver
-ST7735_Local screen;
-
-#endif
-
-
 #ifdef hal_ranger
-
 // ultrasonic distance ranger state
 volatile byte ranger_state = 0;
 volatile unsigned long ranger_time[2];
@@ -119,7 +124,6 @@ void ranger_pulse() {
   // now release the pin (to high-Z) so that the echo pulse can be read
   DDRD  &=~(1<<3);
 }
-
 #endif
 
 #ifdef hal_motors
@@ -439,7 +443,7 @@ void setup() {
   droid.fs.start();
   // center the joystick with the current position
   droid.joystick[0].center = 1024 - analogRead(A1);
-  droid.joystick[1].center = analogRead(A2);
+  droid.joystick[1].center = 1024 - analogRead(A2);
 #ifdef hal_raster
   // clear the RHS edge of the display - line rendering will do the rest
   droid.Draw.rect_fill(126,0,2,160, 0x0000);
@@ -502,19 +506,23 @@ void loop() {
   // read joystick
   int joystick[2];
   joystick[0] = 1024 - analogRead(A1); 
-  joystick[1] = analogRead(A2);
+  joystick[1] = 1024 - analogRead(A2);
   bool button0 = (digitalRead(A3) == LOW); 
   droid.update(joystick,button0,time,dt);
 #ifdef hal_compass
   // get the compass vector
   int v[3];
   compass.get_vector(v);
+  // account for 'hard iron' effects.
+  v[0] += HARDIRON_X;
+  v[1] += HARDIRON_Y;
+  v[2] += HARDIRON_Z;
   // convert mangetometer values to compass readings
-  int heading = atan2_degrees(v[2],-v[0]);
+  int heading = atan2_degrees(v[1],-v[0]);
   droid.set_signal(121, heading);  
   int heading_length = sqrt( ((long)v[0]*(long)v[0]) + ((long)v[2]*(long)v[2]) );
-  int inclination = atan2_degrees(heading_length,v[1]);
-  droid.set_signal(122, inclination);
+  // int inclination = atan2_degrees(heading_length,v[1]);
+  // droid.set_signal(122, inclination);
   int strength = sqrt( ((long)v[0]*(long)v[0]) + ((long)v[1]*(long)v[1]) + ((long)v[2]*(long)v[2]) );
   droid.set_signal(123, strength);
   // and update the droid signals
@@ -624,18 +632,20 @@ void ir_accept(word w) {
   }
 
 #endif
+
 /*
   fast curve-fit integer atan2. Accurate to within 1 degree, at best.
   These routines internally use "fixed point" but arguments are integers,
-  and the result is a 0..360 degree integer
+  and the result is a 0..360 degree integer.
 */
 int atan2_degrees(int x, int y) {
+  if((x==0)&&(y==0)) return 0;
   word a = abs(x);
   word b = abs(y);
   // curve coefficients
   word ta;
   word tb;
-  int  tc = 29335 / 2;
+  int  tc = 14667;
   // quadrant determination
   word q = 0;
   word r;
@@ -675,7 +685,7 @@ int atan2_degrees(int x, int y) {
   // combine 16-bit terms together
   long t = (long)(ta - tb);
   t = (t * (long)tc )>>16;
-  // we now have a 16-bit fixed ppoint angle in degrees from -45 to +45
+  // we now have a 16-bit fixed point angle in degrees from -45 to +45
   // downconvert to integer and add the quadrant
   int angle = (int)(t>>8) + q;
   if(angle<0) angle += 360; // make positive
